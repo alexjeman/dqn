@@ -1,8 +1,18 @@
+"""
+A torch.Tensor is a multi-dimensional matrix containing elements of a single data type.
+
+Torch defines nine CPU tensor types and nine GPU tensor types: https://pytorch.org/docs/stable/tensors.html
+"""
+
 import torch
 import numpy as np
 
 print('Construct a 5x3 matrix, uninitialized:')
+""" The nice thing about using pytorch tensors in general is that 
+you can easily put them on the gpu (as opposed to numpy arrays, which only exist on the cpu). """
 x = torch.empty(5, 3)
+# or
+# x = torch.empty(1, 5, 3)
 print(x)
 
 print('Construct a randomly initialized matrix:')
@@ -79,9 +89,9 @@ print('CUDA Tensors can be moved onto any device using the .to method:')
 # let us run this cell only if CUDA is available
 # We will use ``torch.device`` objects to move tensors in and out of GPU
 if torch.cuda.is_available():
-    device = torch.device("cuda")          # a CUDA device object
+    device = torch.device("cuda")  # a CUDA device object
     y = torch.ones_like(x, device=device)  # directly create a tensor on GPU
-    x = x.to(device)                       # or just use strings ``.to("cuda")``
+    x = x.to(device)  # or just use strings ``.to("cuda")``
     z = x + y
     print(z)
-    print(z.to("cpu", torch.double))       # ``.to`` can also change dtype together!
+    print(z.to("cpu", torch.double))  # ``.to`` can also change dtype together!
