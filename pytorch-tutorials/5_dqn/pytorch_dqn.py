@@ -31,11 +31,12 @@ import torchvision.transforms as T
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
+PATH = './target_dqn.pth'
+POLICY = './policy_dqn.pth'
 
 env = gym.make('CartPole-v0').unwrapped
 
-# set up matplotlib
-plt.ion()
+plt.ion()  # set up matplotlib interactive mode
 
 """ Replay Memory """
 """ We’ll be using experience replay memory for training our DQN. It stores the transitions that the agent observes, 
@@ -145,12 +146,12 @@ def get_screen():
     return resize(screen).unsqueeze(0).to(device)
 
 
-env.reset()
-plt.figure()
-plt.imshow(get_screen().cpu().squeeze(0).permute(1, 2, 0).numpy(),
-           interpolation='none')
-plt.title('Example extracted screen')
-plt.show()
+# env.reset()
+# plt.figure()
+# plt.imshow(get_screen().cpu().squeeze(0).permute(1, 2, 0).numpy(),
+#            interpolation='none')
+# plt.title('Example extracted screen')
+# plt.show()
 
 """ Training """
 """ https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html#hyperparameters-and-utilities
@@ -166,15 +167,18 @@ plt.show()
 """
 
 BATCH_SIZE = 128
-GAMMA = 0.999
+GAMMA = 0.99
 EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 200
 TARGET_UPDATE = 10
+avg_interval = 10
+num_episodes = 2000
 
 # Get screen size so that we can initialize layers correctly based on shape
 # returned from AI gym. Typical dimensions at this point are close to 3x40x90
 # which is the result of a clamped and down-scaled render buffer in get_screen()
+env.reset()
 init_screen = get_screen()
 _, _, screen_height, screen_width = init_screen.shape
 
@@ -183,7 +187,17 @@ n_actions = env.action_space.n
 
 policy_net = DQN(screen_height, screen_width, n_actions).to(device)
 target_net = DQN(screen_height, screen_width, n_actions).to(device)
+
+try:
+    policy_net.load_state_dict(torch.load(POLICY))
+    target_net.load_state_dict(torch.load(PATH))
+    print(f"Loading existing model")
+except:
+    print(f"Initializing new model")
+    pass
+
 target_net.load_state_dict(policy_net.state_dict())
+
 target_net.eval()
 
 optimizer = optim.RMSprop(policy_net.parameters())
@@ -212,19 +226,13 @@ episode_durations = []
 
 
 def plot_durations():
-    plt.figure(2)
+    plt.figure(1)
     plt.clf()
     durations_t = torch.tensor(episode_durations, dtype=torch.float)
     plt.title('Training...')
     plt.xlabel('Episode')
     plt.ylabel('Duration')
     plt.plot(durations_t.numpy())
-    # Take 100 episode averages and plot them too
-    if len(durations_t) >= 100:
-        means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-        means = torch.cat((torch.zeros(99), means))
-        plt.plot(means.numpy())
-
     plt.pause(0.001)  # pause a bit so that plots are updated
 
 
@@ -282,7 +290,6 @@ def optimize_model():
     optimize our model once. When the episode ends (our model fails), we restart the loop.
 """
 
-num_episodes = 50
 for i_episode in range(num_episodes):
     # Initialize the environment and state
     env.reset()
@@ -313,14 +320,18 @@ for i_episode in range(num_episodes):
         optimize_model()
         if done:
             episode_durations.append(t + 1)
-            plot_durations()
+            # plot_durations() # Call show plot function
             break
+    if i_episode % avg_interval == 0:
+        print(f"Episode: {i_episode}, Last {avg_interval} ep average: {sum(episode_durations[-avg_interval:]) / len(episode_durations[-avg_interval:])}")
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
 
 print('Complete')
-env.render()
+print('Saving model...')
+torch.save(policy_net.state_dict(), POLICY)
+torch.save(target_net.state_dict(), PATH)
 env.close()
 plt.ioff()
 plt.show()
