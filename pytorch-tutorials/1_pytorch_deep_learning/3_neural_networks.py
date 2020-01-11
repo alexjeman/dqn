@@ -2,6 +2,7 @@
 The neural network package:
 https://pytorch.org/docs/stable/nn.html
 
+Define neural networks, compute loss and make updates to the weights of the network.
 A typical training procedure for a neural network is as follows:
 
 1. Define the neural network that has some learnable parameters (or weights)
