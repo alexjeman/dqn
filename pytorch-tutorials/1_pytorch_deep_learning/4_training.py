@@ -113,7 +113,7 @@ optimizer = optim.SGD(NN.parameters(), lr=0.001, momentum=0.9)
 #
 #         # print statistics
 #         running_loss += loss.item()
-#         if i % 200 == 199:    # print every 2000 mini-batches
+#         if i % 200 == 200:    # print every 200 mini-batches
 #             print('[%d, %5d] loss: %.3f' %
 #                   (epoch + 1, i + 1, running_loss / 2000))
 #             running_loss = 0.0
@@ -121,7 +121,7 @@ optimizer = optim.SGD(NN.parameters(), lr=0.001, momentum=0.9)
 # print('Finished Training')
 #
 # print('Saving model...')
-# print('More info on saving option https://pytorch.org/docs/stable/notes/serialization.html')
+# print('More info on saving option https://pytorch.org/tutorials/beginner/saving_loading_models.html')
 # torch.save(NN.state_dict(), PATH)
 
 """ 5. Test the Neural Network on the test data """
