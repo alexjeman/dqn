@@ -36,6 +36,6 @@ if __name__ == '__main__':
             win_pct = np.mean(scores[-100:])
             win_pct_list.append(win_pct)
             if i % 1000 == 0:
-                print(f"episode: {i}, win percentage: {win_pct:.2f}, epsilon: {agent.epsilon:.f3}")
+                print(f"episode: {i}, win percentage: {win_pct:.2f}, epsilon: {agent.epsilon:.3f}")
     plt.plot(win_pct_list)
     plt.show()
