@@ -38,7 +38,7 @@ import numpy as np
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
-PATH = './cifar_net.pth'
+PATH = 'cifar_net.pth'
 
 
 """ 1. Loading and normalizing CIFAR10 """
