@@ -1,5 +1,5 @@
 import numpy as np
-from agent import DQNAgent
+from agent import DDQNAgent
 from env_preprocessor import make_env
 from show_plot import plot_learning_curve
 
@@ -11,9 +11,9 @@ if __name__ == '__main__':
     n_actions = env.action_space.n
 
     best_score = -np.inf
-    algo='DQNAgent'
+    algo='DDQNAgent'
     render_game = False
-    load_checkpoint = True
+    load_checkpoint = False
     train_model = True
     n_games = 500
     gamma = 0.99
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     mem_size = 20000
     batch_size = 32
 
-    agent = DQNAgent(gamma=gamma, epsilon=epsilon, lr=lr, input_dims=input_dims,
+    agent = DDQNAgent(gamma=gamma, epsilon=epsilon, lr=lr, input_dims=input_dims,
                      n_actions=n_actions, mem_size=mem_size, eps_min=eps_min,
                      batch_size=batch_size, replace=replace, eps_dec=eps_dec, chkpt_dir=chkpt_dir, algo=algo,
                      env_name=env_name)

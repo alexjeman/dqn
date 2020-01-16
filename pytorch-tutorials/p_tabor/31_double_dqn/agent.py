@@ -1,6 +1,6 @@
 import numpy as np
 import torch as T
-from dqn import DeepQNetwork
+from dqn import DoubleDeepQNetwork
 from replay_memory import ReplayBuffer
 
 
@@ -61,15 +61,16 @@ class Agent():
         self.q_eval.load_checkpoint()
         self.q_next.load_checkpoint()
 
-class DQNAgent(Agent):
-    def __init__(self, *args, **kwargs):
-        super(DQNAgent, self).__init__(*args, **kwargs)
 
-        self.q_eval = DeepQNetwork(self.lr, self.n_actions,
+class DDQNAgent(Agent):
+    def __init__(self, *args, **kwargs):
+        super(DDQNAgent, self).__init__(*args, **kwargs)
+
+        self.q_eval = DoubleDeepQNetwork(self.lr, self.n_actions,
                                     input_dims=self.input_dims,
                                     name=self.env_name+'_'+self.algo+'_q_eval',
                                     chkpt_dir=self.chkpt_dir)
-        self.q_next = DeepQNetwork(self.lr, self.n_actions,
+        self.q_next = DoubleDeepQNetwork(self.lr, self.n_actions,
                                     input_dims=self.input_dims,
                                     name=self.env_name+'_'+self.algo+'_q_next',
                                     chkpt_dir=self.chkpt_dir)
@@ -96,14 +97,16 @@ class DQNAgent(Agent):
         indices = np.arange(self.batch_size)
 
         q_pred = self.q_eval.forward(states)[indices, actions]
+        q_next = self.q_next.forward(states_)
+        q_eval = self.q_eval.forward(states_)
 
-        q_next = self.q_next.forward(states_).max(dim=1)[0]
+        max_actions = T.argmax(q_eval, dim=1)
         q_next[dones] = 0.0
 
-        q_target = rewards + self.gamma*q_next
-
+        q_target = rewards + self.gamma*q_next[indices, max_actions]
         loss = self.q_eval.loss(q_target, q_pred).to(self.q_eval.device)
         loss.backward()
+
         self.q_eval.optimizer.step()
         self.learn_step_counter += 1
 
