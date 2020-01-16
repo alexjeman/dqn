@@ -16,7 +16,7 @@ class DeepQNetwork(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
 
-        fc_input_dims = self.calculate_conv_out_dims(input_dims)
+        fc_input_dims = self.calculate_conv_output_dims(input_dims)
 
         self.fc1 = nn.Linear(fc_input_dims, 512)
         self.fc2 = nn.Linear(512, n_actions)
@@ -26,7 +26,7 @@ class DeepQNetwork(nn.Module):
         self.device = T.device("cuda" if T.cuda.is_available() else "cpu")
         self.to(self.device)
 
-    def calculate_output_dims(self, input_dims):
+    def calculate_conv_output_dims(self, input_dims):
         state = T.zeros(1, *input_dims)
         dims = self.conv1(state)
         dims = self.conv2(dims)
@@ -37,8 +37,7 @@ class DeepQNetwork(nn.Module):
         conv1 = F.relu(self.conv1(state))
         conv2 = F.relu(self.conv2(conv1))
         conv3 = F.relu(self.conv3(conv2))
-        # conv3 shape is batch size x n_filters x H x W
-        conv_state = conv3.view()
+        conv_state = conv3.view(conv3.size()[0], -1)
         flat1 = F.relu(self.fc1(conv_state))
         actions = self.fc2(flat1)
 
