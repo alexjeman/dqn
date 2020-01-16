@@ -5,26 +5,44 @@ from show_plot import plot_learning_curve
 
 if __name__ == '__main__':
     env = make_env('PongNoFrameskip-v4')
+    env_name = 'PongNoFrameskip-v4'
+    chkpt_dir = 'models/'
+    input_dims = env.observation_space.shape
+    n_actions = env.action_space.n
+
     best_score = -np.inf
-    load_checkpoint = False
+    algo='DQNAgent'
+    render_game = True
+    load_checkpoint = True
+    train_model = True
     n_games = 500
-    agent = DQNAgent(gamma=0.99, epsilon=1.0, lr=0.0001, input_dims=env.observation_space.shape,
-                     n_actions=env.action_space.n, mem_size=25000, eps_min=0.1,
-                     batch_size=32, replace=1000, eps_dec=1e-5, chkpt_dir='models/', algo='DQNAgent',
-                     env_name='PongNoFrameskip-v4')
+    gamma = 0.99
+    epsilon = 1.0
+    lr = 0.0001
+    eps_min = 1e-3
+    eps_dec = 1e-5
+    replace = 1000
+    mem_size = 20000
+    batch_size = 32
+
+    agent = DQNAgent(gamma=gamma, epsilon=epsilon, lr=lr, input_dims=input_dims,
+                     n_actions=n_actions, mem_size=mem_size, eps_min=eps_min,
+                     batch_size=batch_size, replace=replace, eps_dec=eps_dec, chkpt_dir=chkpt_dir, algo=algo,
+                     env_name=env_name)
 
     if load_checkpoint:
         agent.load_models()
+        agent.epsilon = eps_min
 
     fname = agent.algo + '_' + agent.env_name + '_lr' + str(agent.lr) + '_' \
             '_' + str(n_games) + 'games'
     figure_file = 'plots/' + fname + '.png'
     scores_file = fname + '_scores.npy'
 
-    n_steps = 0
+    n_episodes = 0
     scores = []
     eps_history = []
-    steps_arr = []
+    episode_arr = []
 
     for i in range(n_games):
         done = False
@@ -32,26 +50,30 @@ if __name__ == '__main__':
         score = 0
 
         while not done:
+            if render_game:
+                env.render()
+
             action = agent.choose_action(observation)
             observation_, reward, done, info = env.step(action)
             score += reward
 
-            if not load_checkpoint:
+            if train_model:
                 agent.store_transition(observation, action, reward, observation_, int(done))
                 agent.learn()
             observation = observation_
-            n_steps += 1
+
         scores.append(score)
-        steps_arr.append(n_steps)
 
         avg_score = np.mean(scores[-100:])
-        print('episode: ', i, 'score: ', score, 'average score %.1f best score %.1f epsilon %3f' % (avg_score, best_score, agent.epsilon), 'steps: ', n_steps)
+        print('episode: ', i, ',score: ', score, ',average score: %.1f ,best score: %.1f epsilon %3f' % (avg_score, best_score, agent.epsilon))
 
         if avg_score > best_score:
-            if not load_checkpoint:
-                agent.save_models()
             best_score = avg_score
+            if train_model and i > 100:
+                agent.save_models()
 
         eps_history.append(agent.epsilon)
+    n_episodes += 1
+    episode_arr.append(n_episodes)
 
-    plot_learning_curve(steps_arr, scores, eps_history, figure_file)
+    plot_learning_curve(episode_arr, scores, eps_history, figure_file)
