@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import plot_learning_curve
+from show_plot import plot_learning_curve
 
 from naive_dqn import Agent
 
