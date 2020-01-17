@@ -6,9 +6,9 @@ import torch.optim as optim
 import numpy as np
 
 
-class DuelingDeepQNetwork(nn.Module):
+class DDDQNetwork(nn.Module):
     def __init__(self, lr, n_actions, name, input_dims, chkpt_dir):
-        super(DuelingDeepQNetwork, self).__init__()
+        super(DDDQNetwork, self).__init__()
         self.checkpoint_dir = chkpt_dir
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name)
 

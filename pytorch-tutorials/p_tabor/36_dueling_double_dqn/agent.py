@@ -1,6 +1,6 @@
 import numpy as np
 import torch as T
-from dqn import DuelingDeepQNetwork
+from dqn import DDDQNetwork
 from replay_memory import ReplayBuffer
 
 
@@ -61,15 +61,15 @@ class Agent():
         self.q_eval.load_checkpoint()
         self.q_next.load_checkpoint()
 
-class DuelingDQNAgent(Agent):
+class DDDQNAgent(Agent):
     def __init__(self, *args, **kwargs):
-        super(DuelingDQNAgent, self).__init__(*args, **kwargs)
+        super(DDDQNAgent, self).__init__(*args, **kwargs)
 
-        self.q_eval = DuelingDeepQNetwork(self.lr, self.n_actions,
+        self.q_eval = DDDQNetwork(self.lr, self.n_actions,
                                     input_dims=self.input_dims,
                                     name=self.env_name+'_'+self.algo+'_q_eval',
                                     chkpt_dir=self.chkpt_dir)
-        self.q_next = DuelingDeepQNetwork(self.lr, self.n_actions,
+        self.q_next = DDDQNetwork(self.lr, self.n_actions,
                                     input_dims=self.input_dims,
                                     name=self.env_name+'_'+self.algo+'_q_next',
                                     chkpt_dir=self.chkpt_dir)
@@ -98,11 +98,17 @@ class DuelingDQNAgent(Agent):
         value_s, action_s = self.q_eval.forward(states)
         value_s_, action_s_ = self.q_next.forward(states_)
 
+        value_s_eval, action_s_eval = self.q_eval.forward(states_)
+
         q_pred = T.add(value_s, (action_s - action_s.mean(dim=1, keepdim=True)))[indices, actions]
-        q_next = T.add(value_s_, (action_s_ - action_s_.mean(dim=1, keepdim=True))).max(dim=1)[0]
+        q_next = T.add(value_s_, (action_s_ - action_s_.mean(dim=1, keepdim=True)))
+
+        q_eval = T.add(value_s_eval, (action_s_eval - action_s_eval.mean(dim=1, keepdim=True)))
+
+        max_actions = T.argmax(q_eval, dim=1)
 
         q_next[dones] = 0.0
-        q_target = rewards + self.gamma*q_next
+        q_target = rewards + self.gamma*q_next[indices, max_actions]
 
         loss = self.q_eval.loss(q_target, q_pred).to(self.q_eval.device)
         loss.backward()
