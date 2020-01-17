@@ -19,7 +19,9 @@ class DoubleDeepQNetwork(nn.Module):
         fc_input_dims = self.calculate_conv_output_dims(input_dims)
 
         self.fc1 = nn.Linear(fc_input_dims, 512)
-        self.fc2 = nn.Linear(512, n_actions)
+        self.fc2 = nn.Linear(512, 64)
+        self.fc3 = nn.Linear(64, 32)
+        self.fc4 = nn.Linear(32, n_actions)
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.loss = nn.SmoothL1Loss()
@@ -39,7 +41,9 @@ class DoubleDeepQNetwork(nn.Module):
         conv3 = self._swish(self.conv3(conv2))
         conv_state = conv3.view(conv3.size()[0], -1)
         flat1 = self._swish(self.fc1(conv_state))
-        actions = self.fc2(flat1)
+        flat2 = self._swish(self.fc2(flat1))
+        flat3 = self._swish(self.fc3(flat2))
+        actions = self.fc4(flat3)
 
         return actions
 
