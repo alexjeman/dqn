@@ -1,6 +1,6 @@
 import numpy as np
 import torch as T
-from dqn import DeepQNetwork
+from dqn import DuelingDeepQNetwork
 from replay_memory import ReplayBuffer
 
 
@@ -61,15 +61,15 @@ class Agent():
         self.q_eval.load_checkpoint()
         self.q_next.load_checkpoint()
 
-class DQNAgent(Agent):
+class DuelingDQNAgent(Agent):
     def __init__(self, *args, **kwargs):
-        super(DQNAgent, self).__init__(*args, **kwargs)
+        super(DuelingDQNAgent, self).__init__(*args, **kwargs)
 
-        self.q_eval = DeepQNetwork(self.lr, self.n_actions,
+        self.q_eval = DuelingDeepQNetwork(self.lr, self.n_actions,
                                     input_dims=self.input_dims,
                                     name=self.env_name+'_'+self.algo+'_q_eval',
                                     chkpt_dir=self.chkpt_dir)
-        self.q_next = DeepQNetwork(self.lr, self.n_actions,
+        self.q_next = DuelingDeepQNetwork(self.lr, self.n_actions,
                                     input_dims=self.input_dims,
                                     name=self.env_name+'_'+self.algo+'_q_next',
                                     chkpt_dir=self.chkpt_dir)
@@ -77,8 +77,8 @@ class DQNAgent(Agent):
     def choose_action(self, observation):
         if np.random.random() > self.epsilon:
             state = T.tensor([observation],dtype=T.float).to(self.q_eval.device)
-            actions = self.q_eval.forward(state)
-            action = T.argmax(actions).item()
+            _, advantage = self.q_eval.forward(state)
+            action = T.argmax(advantage).item()
         else:
             action = np.random.choice(self.action_space)
 
@@ -95,11 +95,13 @@ class DQNAgent(Agent):
         states, actions, rewards, states_, dones = self.sample_memory()
         indices = np.arange(self.batch_size)
 
-        q_pred = self.q_eval.forward(states)[indices, actions]
+        value_s, action_s = self.q_eval.forward(states)
+        value_s_, action_s_ = self.q_next.forward(states_)
 
-        q_next = self.q_next.forward(states_).max(dim=1)[0]
+        q_pred = T.add(value_s, (action_s - action_s.mean(dim=1, keepdim=True)))[indices, actions]
+        q_next = T.add(value_s_, (action_s_ - action_s_.mean(dim=1, keepdim=True))).max(dim=1)[0]
+
         q_next[dones] = 0.0
-
         q_target = rewards + self.gamma*q_next
 
         loss = self.q_eval.loss(q_target, q_pred).to(self.q_eval.device)

@@ -6,9 +6,9 @@ import torch.optim as optim
 import numpy as np
 
 
-class DeepQNetwork(nn.Module):
+class DuelingDeepQNetwork(nn.Module):
     def __init__(self, lr, n_actions, name, input_dims, chkpt_dir):
-        super(DeepQNetwork, self).__init__()
+        super(DuelingDeepQNetwork, self).__init__()
         self.checkpoint_dir = chkpt_dir
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name)
 
@@ -18,8 +18,9 @@ class DeepQNetwork(nn.Module):
 
         fc_input_dims = self.calculate_conv_output_dims(input_dims)
 
-        self.fc1 = nn.Linear(fc_input_dims, 512)
-        self.fc2 = nn.Linear(512, n_actions)
+        self.fc1 = nn.Linear(fc_input_dims, 512)                            # Split in to 2 streams:
+        self.value_s = nn.Linear(512, 1)                                        # Value stream
+        self.action_s = nn.Linear(512, n_actions)                                # Action stream
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.loss = nn.SmoothL1Loss()
@@ -39,9 +40,10 @@ class DeepQNetwork(nn.Module):
         conv3 = self._swish(self.conv3(conv2))
         conv_state = conv3.view(conv3.size()[0], -1)
         flat1 = self._swish(self.fc1(conv_state))
-        actions = self.fc2(flat1)
+        value_s = self.value_s(flat1)
+        action_s = self.action_s(flat1)
 
-        return actions
+        return value_s, action_s
 
     def _swish(self, x):
         return x * T.sigmoid(x)
