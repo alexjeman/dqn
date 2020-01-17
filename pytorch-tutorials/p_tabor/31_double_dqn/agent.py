@@ -4,9 +4,9 @@ from dqn import DoubleDeepQNetwork
 from replay_memory import ReplayBuffer
 
 
-class Agent(object):
+class DDQNAgent(object):
     def __init__(self, gamma, epsilon, lr, n_actions, input_dims,
-                 mem_size, batch_size, eps_min=0.01, eps_dec=5e-7,
+                 mem_size, batch_size, eps_min, eps_dec,
                  replace=1000, algo=None, env_name=None, chkpt_dir='tmp/dqn'):
         self.gamma = gamma
         self.epsilon = epsilon
@@ -25,11 +25,17 @@ class Agent(object):
 
         self.memory = ReplayBuffer(mem_size, input_dims, n_actions)
 
+        self.q_eval = DoubleDeepQNetwork(self.lr, self.n_actions,
+                                         input_dims=self.input_dims,
+                                         name=self.env_name + '_' + self.algo + '_q_eval',
+                                         chkpt_dir=self.chkpt_dir)
+        self.q_next = DoubleDeepQNetwork(self.lr, self.n_actions,
+                                         input_dims=self.input_dims,
+                                         name=self.env_name + '_' + self.algo + '_q_next',
+                                         chkpt_dir=self.chkpt_dir)
+
     def store_transition(self, state, action, reward, state_, done):
         self.memory.store_transition(state, action, reward, state_, done)
-
-    def choose_action(self, observation):
-        raise NotImplementedError
 
     def replace_target_network(self):
         if self.learn_step_counter % self.replace_target_cnt == 0:
@@ -50,9 +56,6 @@ class Agent(object):
 
         return states, actions, rewards, states_, dones
 
-    def learn(self):
-        raise NotImplementedError
-
     def save_models(self):
         self.q_eval.save_checkpoint()
         self.q_next.save_checkpoint()
@@ -60,20 +63,6 @@ class Agent(object):
     def load_models(self):
         self.q_eval.load_checkpoint()
         self.q_next.load_checkpoint()
-
-
-class DDQNAgent(Agent):
-    def __init__(self, *args, **kwargs):
-        super(DDQNAgent, self).__init__(*args, **kwargs)
-
-        self.q_eval = DoubleDeepQNetwork(self.lr, self.n_actions,
-                                    input_dims=self.input_dims,
-                                    name=self.env_name+'_'+self.algo+'_q_eval',
-                                    chkpt_dir=self.chkpt_dir)
-        self.q_next = DoubleDeepQNetwork(self.lr, self.n_actions,
-                                    input_dims=self.input_dims,
-                                    name=self.env_name+'_'+self.algo+'_q_next',
-                                    chkpt_dir=self.chkpt_dir)
 
     def choose_action(self, observation):
         if np.random.random() > self.epsilon:
