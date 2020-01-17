@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
         if avg_score > best_score:
             best_score = avg_score
-            if train_model and i > 100:
+            if train_model and i > 50:
                 agent.save_models()
 
         eps_history.append(agent.epsilon)
