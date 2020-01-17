@@ -15,7 +15,7 @@ if __name__ == '__main__':
     render_game = False
     load_checkpoint = False
     train_model = True
-    n_games = 300
+    n_games = 500
     gamma = 0.99
     epsilon = 1.0
     lr = 1e-4
@@ -65,7 +65,7 @@ if __name__ == '__main__':
         scores.append(score)
 
         avg_score = np.mean(scores[-100:])
-        print('episode: ', i, ',score: ', score, ',average score: %.1f ,best score: %.1f epsilon %3f' % (avg_score, best_score, agent.epsilon))
+        print('episode: ', i,', score: ', score,', average score: %.1f, best score: %.1f epsilon %3f' % (avg_score, best_score, agent.epsilon))
 
         if avg_score > best_score:
             best_score = avg_score

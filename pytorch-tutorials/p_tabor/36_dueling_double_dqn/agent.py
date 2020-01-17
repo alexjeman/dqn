@@ -1,12 +1,12 @@
 import numpy as np
 import torch as T
-from dqn import DDDQNetwork
+from dqn import DDDeepQNetwork
 from replay_memory import ReplayBuffer
 
 
-class Agent():
+class DDDQNAgent(object):
     def __init__(self, gamma, epsilon, lr, n_actions, input_dims,
-                 mem_size, batch_size, eps_min=0.01, eps_dec=5e-7,
+                 mem_size, batch_size, eps_min, eps_dec,
                  replace=1000, algo=None, env_name=None, chkpt_dir='tmp/dqn'):
         self.gamma = gamma
         self.epsilon = epsilon
@@ -25,19 +25,27 @@ class Agent():
 
         self.memory = ReplayBuffer(mem_size, input_dims, n_actions)
 
+        self.q_eval = DDDeepQNetwork(self.lr, self.n_actions,
+                                    input_dims=self.input_dims,
+                                    name=self.env_name+'_'+self.algo+'_q_eval',
+                                    chkpt_dir=self.chkpt_dir)
+        self.q_next = DDDeepQNetwork(self.lr, self.n_actions,
+                                    input_dims=self.input_dims,
+                                    name=self.env_name+'_'+self.algo+'_q_next',
+                                    chkpt_dir=self.chkpt_dir)
+
     def store_transition(self, state, action, reward, state_, done):
         self.memory.store_transition(state, action, reward, state_, done)
 
-    def choose_action(self, observation):
-        raise NotImplementedError
-
     def replace_target_network(self):
-        if self.learn_step_counter % self.replace_target_cnt == 0:
+        if self.replace_target_cnt is not None and \
+                self.learn_step_counter % self.replace_target_cnt == 0:
             self.q_next.load_state_dict(self.q_eval.state_dict())
 
     def decrement_epsilon(self):
         self.epsilon = self.epsilon - self.eps_dec \
                            if self.epsilon > self.eps_min else self.eps_min
+
     def sample_memory(self):
         state, action, reward, new_state, done = \
                                 self.memory.sample_buffer(self.batch_size)
@@ -50,9 +58,6 @@ class Agent():
 
         return states, actions, rewards, states_, dones
 
-    def learn(self):
-        raise NotImplementedError
-
     def save_models(self):
         self.q_eval.save_checkpoint()
         self.q_next.save_checkpoint()
@@ -61,24 +66,13 @@ class Agent():
         self.q_eval.load_checkpoint()
         self.q_next.load_checkpoint()
 
-class DDDQNAgent(Agent):
-    def __init__(self, *args, **kwargs):
-        super(DDDQNAgent, self).__init__(*args, **kwargs)
-
-        self.q_eval = DDDQNetwork(self.lr, self.n_actions,
-                                    input_dims=self.input_dims,
-                                    name=self.env_name+'_'+self.algo+'_q_eval',
-                                    chkpt_dir=self.chkpt_dir)
-        self.q_next = DDDQNetwork(self.lr, self.n_actions,
-                                    input_dims=self.input_dims,
-                                    name=self.env_name+'_'+self.algo+'_q_next',
-                                    chkpt_dir=self.chkpt_dir)
-
     def choose_action(self, observation):
         if np.random.random() > self.epsilon:
-            state = T.tensor([observation],dtype=T.float).to(self.q_eval.device)
-            _, advantage = self.q_eval.forward(state)
-            action = T.argmax(advantage).item()
+            state = np.array([observation], copy=False, dtype=np.float32)
+            state_tensor = T.tensor(state).to(self.q_eval.device)
+            _, advantages = self.q_eval.forward(state_tensor)
+
+            action = T.argmax(advantages).item()
         else:
             action = np.random.choice(self.action_space)
 
@@ -95,15 +89,14 @@ class DDDQNAgent(Agent):
         states, actions, rewards, states_, dones = self.sample_memory()
         indices = np.arange(self.batch_size)
 
-        value_s, action_s = self.q_eval.forward(states)
-        value_s_, action_s_ = self.q_next.forward(states_)
+        val_s, act_s = self.q_eval.forward(states)
+        val_s_, act_s_ = self.q_next.forward(states_)
 
-        value_s_eval, action_s_eval = self.q_eval.forward(states_)
+        val_s_eval, act_s_eval = self.q_eval.forward(states_)
 
-        q_pred = T.add(value_s, (action_s - action_s.mean(dim=1, keepdim=True)))[indices, actions]
-        q_next = T.add(value_s_, (action_s_ - action_s_.mean(dim=1, keepdim=True)))
-
-        q_eval = T.add(value_s_eval, (action_s_eval - action_s_eval.mean(dim=1, keepdim=True)))
+        q_pred = T.add(val_s, (act_s - act_s.mean(dim=1, keepdim=True)))[indices, actions]
+        q_next = T.add(val_s_, (act_s_ - act_s_.mean(dim=1, keepdim=True)))
+        q_eval = T.add(val_s_eval, (act_s_eval - act_s_eval.mean(dim=1, keepdim=True)))
 
         max_actions = T.argmax(q_eval, dim=1)
 
@@ -112,6 +105,7 @@ class DDDQNAgent(Agent):
 
         loss = self.q_eval.loss(q_target, q_pred).to(self.q_eval.device)
         loss.backward()
+
         self.q_eval.optimizer.step()
         self.learn_step_counter += 1
 
