@@ -18,8 +18,8 @@ if __name__ == '__main__':
     n_games = 500
     gamma = 0.99
     epsilon = 1.0
-    lr = 0.0001
-    eps_min = 1e-3
+    lr = 1e-4
+    eps_min = 1e-5
     eps_dec = 1e-5
     replace = 1000
     mem_size = 20000
