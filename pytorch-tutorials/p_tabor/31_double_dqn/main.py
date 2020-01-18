@@ -4,8 +4,8 @@ from env_preprocessor import make_env
 from show_plot import plot_learning_curve
 
 if __name__ == '__main__':
-    env = make_env('PongNoFrameskip-v4')
-    env_name = 'PongNoFrameskip-v4'
+    env = make_env('SpaceInvadersNoFrameskip-v0')
+    env_name = 'SpaceInvadersNoFrameskip-v0'
     chkpt_dir = 'models/'
     input_dims = env.observation_space.shape
     n_actions = env.action_space.n
