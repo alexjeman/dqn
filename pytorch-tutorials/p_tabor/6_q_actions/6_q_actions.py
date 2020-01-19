@@ -5,7 +5,7 @@
 # target network - calculate the value of maximum actions during the learning step
 # evaluation network - evaluate current state and see which action to take
 # epsilon greedy - time which agents spends for random action exploring vs greedy actions
-#
+# dueling network - separates the state value / action advantage
 #
 #
 #
