@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     best_score = -np.inf
     algo='DDQNAgent'
-    render_game = False
+    render_game = True
     load_checkpoint = False
     train_model = True
     n_games = 500

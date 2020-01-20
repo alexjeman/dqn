@@ -12,7 +12,7 @@ class DoubleDeepQNetwork(nn.Module):
         self.checkpoint_dir = chkpt_dir
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name)
 
-        self.conv1 = nn.Conv2d(input_dims[0], 32, kernel_size=8, stride=4)  # input_dims the [0]'th element coresponds to the number of channels in the input image(in this case 4 by (1 gray scale image)
+        self.conv1 = nn.Conv2d(input_dims[0], 32, kernel_size=8, stride=4)  # input_dims the [0]'th element corresponds to the number of channels in the input image(in this case 4 by (1 gray scale image)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
 
